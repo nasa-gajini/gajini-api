@@ -46,7 +46,7 @@ def query_openai(prompt, crop, evap_value, soil_moisture, vegetation_water_conte
                 "content": user_question
             }
         ],
-        "max_tokens": 800
+        "max_tokens": 500
     }
 
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
@@ -58,6 +58,60 @@ def query_openai(prompt, crop, evap_value, soil_moisture, vegetation_water_conte
         return f"Error: {response.status_code}, {response.text}"
 
 # Main function
+
+
+
+# Function to query OpenAI API for the extracted data
+def query_openai_recommend(evap_value, soil_moisture, vegetation_water_content, vegetation_opacity, bulk_density, clay_fraction, surface_temperature, static_water_body_fraction, ndvi, lon, lat):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {openai_api_key}"
+    }
+
+    prompt = (
+        "This dataset contains environmental factors such as evapotranspiration, soil moisture, "
+        "and other critical information for understanding agriculture and water resource management. "
+        "Given these current environmental conditions, please recommend one crop from the following: wheat, rice, corn, barley, oats, banana. "
+        "Please explain why this crop is the most suitable. The response should be in JSON format with two keys: 'recommended_crop' and 'reason'."
+
+    )
+
+    # Create a question for the AI including all variables
+    user_question = (
+        f"{prompt} The environmental data for latitude {lat} and longitude {lon} in Egypt is as follows:\n"
+        f"- Evapotranspiration (ET): {evap_value} mm/day\n"
+        f"- Soil Moisture: {soil_moisture} m³/m³\n"
+        f"- Vegetation Water Content: {vegetation_water_content} kg/m²\n"
+        f"- Vegetation Opacity: {vegetation_opacity}\n"
+        f"- Bulk Density: {bulk_density} g/cm³\n"
+        f"- Clay Fraction: {clay_fraction}\n"
+        f"- Surface Temperature: {surface_temperature} K\n"
+        f"- Static Water Body Fraction: {static_water_body_fraction}\n"
+        f"- NDVI: {ndvi}\n\n"
+        "Based on these environmental factors, can you choose one crop from the following: wheat, rice, corn, barley, oats, banana? "
+        "Please also explain why this crop is most suitable. The response should be in JSON format with two keys: 'recommended_crop' and 'reason'."
+    )
+
+    payload = {
+        "model": "gpt-4",
+        "messages": [
+            {
+                "role": "user",
+                "content": user_question
+            }
+        ],
+        "max_tokens": 500
+    }
+
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+
+    # Handle response and check for errors
+    if response.status_code == 200:
+        return response.json()["choices"][0]["message"]["content"]
+    else:
+        return f"Error: {response.status_code}, {response.text}"
+
+
 def main():
     # Define file path and the coordinates (lon, lat) you want to query
     file_path = '../data/Vegetation_ET/FLDAS_NOAH01_C_GL_M.A202408.001.nc'
@@ -95,6 +149,9 @@ def main():
 
     # Print the response from OpenAI
     print("AI Response:", response)
+
+
+
 
 
 if __name__ == "__main__":
